@@ -1,8 +1,13 @@
-real rfdiva = 0.3;
-real Epsi = 1;
-real nu = 0.05;
+load "iovtk";
+int[int] Order = [1, 1];
+string DataName = "N t", vtkSavePath = "./data/";
 
-include "./meshes/MeshSphereTanh2.idp";
+
+real rfdiva = 0.1;
+real Epsi = 1;
+real nu = 0;
+
+include "./meshes/MeshSphere.idp";
 include "Geometry.idp";
 include "RusanovFlux.idp";
 
@@ -10,7 +15,7 @@ verbosity=0;
 
 int curplot = 0, plotstep = 10;
 real minN = 1e-10;
-real dtmin = 1e-2, dt = 1e-16;
+real dtmin = 1e-1, dt = 1e-16;
 
 //// Poison equation
 fespace VhPois(Th, P1);
@@ -49,7 +54,7 @@ for (int i = 0; i < 55; i ++)
 
 real T = 0; // current time
 while (T < 100) {
-  dt = min(hmin / U0[].max / 10 , dtmin);
+  dt = min(hmin / U0[].max / 4 , dtmin);
 
   for (int t = 0; t < NT; t++) {
     real NL = N0[][t], PRL = PR[][t], U0L = U0[][t];
@@ -114,7 +119,7 @@ while (T < 100) {
     cout << " T = " << T << endl;
     cout << "Ne = " << 2*pi*int2d(Th)(N0 * x) << endl;
     cout << "dt = " << dt << endl;
-
+    savevtk(vtkSavePath + "N" + curplot / plotstep +  ".vtu", Th, N0, T, dataname=DataName, order=Order);
   }  
 
 
