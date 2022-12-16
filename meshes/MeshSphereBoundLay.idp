@@ -1,0 +1,33 @@
+real hmin = 0.003;
+real hmax = 0.5;
+real bw = 0.2;
+real R  = 2.;
+real ap = 1;
+real am = -1;
+
+border Axm(t = am,-R) {x = 0; y = t; label = 0;}
+border Axi(t = ap,am) {x = 0; y = t; label = 0;}
+border Axp(t = R,ap) {x = 0; y = t; label = 0;}
+border Out(t = -pi/2, pi/2) {x = cos(t)*R; y = sin(t)*R; label = 1;}
+border Obj(t = -pi/2, pi/2) {x = ap*cos(t); y = ap*sin(t); label = 2;}
+
+int Naxm = round((R + am) / hmax);
+int Naxi = round((ap - am) / hmin);
+int Naxp = round((R - ap) / hmax);
+int Nout = round( R * pi / hmax);
+int Nobj = round( ap * pi / hmin);
+
+
+func real f() {
+  real r = (sqrt(x^2+y^2));
+  return  ( r < (ap+bw)) * ( r > (ap-bw)) * cos( ( r - ap) / bw * pi /2 )^2;  
+} 
+
+mesh Th = buildmesh( Obj(Nobj) + Axi(Naxi) + Axm(Naxm) + Out(Nout) + Axp(Naxp) );
+plot(Th,wait = true);
+
+Th =  adaptmesh(Th, f(), hmin = hmin, hmax = hmax , nbvx = 3500, thetamax = 30);
+
+plot(Th,wait = true);
+
+

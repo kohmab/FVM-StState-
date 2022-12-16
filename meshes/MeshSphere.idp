@@ -1,0 +1,60 @@
+real a = 1;
+
+real R = 2;
+real h0 = a/6, hsurf = a/15;
+real bw = rfdiva * 4;
+real hmin = 0.003;
+
+border bigO(t = -pi / 2, pi / 2)
+{
+    x = R * cos(t);
+    y = R * sin(t);
+    label = 1;
+}
+border topax(t = R, a) 
+{
+    x = 0.0;
+    y = t;
+    label = 1;
+}
+border botax(t = -a, -R ) 
+{
+    x = 0.0;
+    y = t;
+    label = 1;
+}
+
+border midax(t = a, -a) 
+{
+    x = 0.0;
+    y = t;
+    label = 1;
+}
+border smallO(t = -pi / 2, pi / 2)
+{
+    x =  a * cos(t);
+    y = a * sin(t);
+    label = 1;
+}
+mesh Th = buildmesh(
+                    bigO(round(pi / h0)) + 
+                    smallO(round(pi * a / hsurf)) +
+                    topax(round((R - a) / h0 )) +
+                    midax(round(2 * a / h0)) +
+                    botax(round((R - a) / h0)) ); 
+
+plot(Th,wait = true);
+
+macro r() sqrt(x^2 + y^2) // EOM
+macro f() cos((r - a) / bw * pi/2) ^ 2 *  ((r > a - bw)*(r < a + bw)) // EOM
+macro g() tanh((a - r) / bw) // EOM
+
+fespace Vh(Th,P1);
+
+
+Th = splitmesh(Th,int(100*f)+1);
+
+plot(Th,wait = true);
+
+Th = adaptmesh(Th,g, hmin = hmin);
+plot(Th,wait = true);
