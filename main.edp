@@ -1,8 +1,8 @@
-real rfdiva = 0.02;
+real rfdiva = 0.3;
 real Epsi = 1;
 real nu = 0.05;
 
-include "MeshSphereTanh2.idp";
+include "./meshes/MeshSphereTanh2.idp";
 include "Geometry.idp";
 include "RusanovFlux.idp";
 
