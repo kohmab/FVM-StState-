@@ -1,60 +1,34 @@
-real a = 1;
+real hmin = rfdiva / 3;
+real hbodysurf = 0.05;
+real hmax = 0.5;
+real bw = rfdiva;
+real R  = 2.;
+real ap = 1;
+real am = -1;
 
-real R = 2;
-real h0 = a/6, hsurf = a/15;
-real bw = rfdiva * 4;
-real hmin = 0.003;
+border Axm(t = am,-R) {x = 0; y = t; label = 0;}
+border Axi(t = ap,am) {x = 0; y = t; label = 0;}
+border Axp(t = R,ap) {x = 0; y = t; label = 0;}
+border Out(t = -pi/2, pi/2) {x = cos(t)*R; y = sin(t)*R; label = 1;}
+border Obj(t = -pi/2, pi/2) {x = ap*cos(t); y = ap*sin(t); label = 2;}
 
-border bigO(t = -pi / 2, pi / 2)
-{
-    x = R * cos(t);
-    y = R * sin(t);
-    label = 1;
-}
-border topax(t = R, a) 
-{
-    x = 0.0;
-    y = t;
-    label = 1;
-}
-border botax(t = -a, -R ) 
-{
-    x = 0.0;
-    y = t;
-    label = 1;
-}
+int Naxm = round((R + am) / hbodysurf);
+int Naxi = round((ap - am) / hbodysurf);
+int Naxp = round((R - ap) / hbodysurf);
+int Nout = round( R * pi / hmax);
+int Nobj = round( ap * pi / hbodysurf);
 
-border midax(t = a, -a) 
-{
-    x = 0.0;
-    y = t;
-    label = 1;
-}
-border smallO(t = -pi / 2, pi / 2)
-{
-    x =  a * cos(t);
-    y = a * sin(t);
-    label = 1;
-}
-mesh Th = buildmesh(
-                    bigO(round(pi / h0)) + 
-                    smallO(round(pi * a / hsurf)) +
-                    topax(round((R - a) / h0 )) +
-                    midax(round(2 * a / h0)) +
-                    botax(round((R - a) / h0)) ); 
-
-plot(Th,wait = true);
+mesh Th = buildmesh( Obj(Nobj) + Axi(Naxi) + Axm(Naxm) + Out(Nout) + Axp(Naxp) );
 
 macro r() sqrt(x^2 + y^2) // EOM
-macro f() cos((r - a) / bw * pi/2) ^ 2 *  ((r > a - bw)*(r < a + bw)) // EOM
-macro g() tanh((a - r) / bw) // EOM
+macro spherebig()  (r < ap + 2*rfdiva) // EOM
+macro nespheresmall() (r < ap ) // EOM
 
-fespace Vh(Th,P1);
-
-
-Th = splitmesh(Th,int(100*f)+1);
 
 plot(Th,wait = true);
 
-Th = adaptmesh(Th,g, hmin = hmin);
+Th = adaptmesh(Th, spherebig, err = 1e-2, iso = true, ratio = 1.25, hmin = hmin );
+plot(Th,wait = true);
+
+Th = adaptmesh(Th, nespheresmall, err = 1e-2, iso = true, ratio = 1.25, hmin = hmin, nbvx = 35000 );
 plot(Th,wait = true);
