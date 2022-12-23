@@ -1,19 +1,18 @@
 load "iovtk";
 
-real rfdiva = 0.1; // Ratio between Fermi radius and
-                    // characteristic lenght of the object.
-real Epsi = 1;      // Permittivity of the atomic lattice.
-real nuIns = 1.5,   // Collision frequencies inside
-    nuOut = 0.00;   // and outside the object.
+real rfdiva = 1.1; // Ratio between Fermi radius and
+                   // characteristic lenght of the object.
+real Epsi = 1;     // Permittivity of the atomic lattice.
+real nuIns = 1.5,  // Collision frequencies inside
+    nuOut = 0.0;   // and outside the object.
+
+real deltaN = 1e-6; // Relative concentration error
 
 real minN = 1e-10; // Minimal density for calculating velocity in the cell
-real dtmin = 1e-1, Tend = 27; // Minimal time step and final time
-real CFL = 0.45;               // dt = CFL * (dx / max Lambda)
+real dtmin = 1e-1; // Minimal time step and final time
+real CFL = 0.45;   // dt = CFL * (dx / max Lambda)
 
 int plotstep = 10; // Number of iterations between plotting
-
-int[int] Order = [ 1, 1, 1 ];
-string DataName = "N J t", vtkSavePath = "./data/";
 
 include "./meshes/MeshSphere.idp";
 include "Geometry.idp";
@@ -24,17 +23,24 @@ verbosity = 0;
 // Auxiliary constants
 real rfdivasq = rfdiva ^ 2, sqrt3 = sqrt(3);
 
-// Plotting parameters
+//// Plotting and saving
 int curplot = 0;
 real[int] viso(55);
 for (int i = 0; i < 55; i++)
   viso[i] = 0.02 * i;
 
+string DataName = "N J E t",
+       vtkSavePath = "./data/rfdiva=" + rfdiva + "_EpsI=" + Epsi + "deltaN=" + deltaN + "nuIns=" + nuIns + "nuOut=" + nuOut + "/";
+int sysCall = system("mkdir " + vtkSavePath);
+int[int] Order = [ 1, 1, 1, 1 ];
+
 //// Poison equation
-func real Eps() {
+func real Eps()
+{
   return (Th(x, y).region == Th(0, 0).region) ? Epsi : 1.0;
 } // Perrmittivity
-func real Nplus() {
+func real Nplus()
+{
   return (Th(x, y).region == Th(0, 0).region) ? 1.0 : 0.0;
 } // Positive charge
 
@@ -46,51 +52,61 @@ problem Poison(Ksi,
                     int2d(Th)((Nplus() - Ne) * v * x) + on(1, Ksi = 0);
 
 // Hydrodynamics
-func real Damp() {
+
+func real Damp()
+{
   return (Th(x, y).region == Th(0, 0).region) ? nuIns : nuOut;
 } // Collision frequency
 
-func real Velocity(real FluxDens, real Dens) {
+func real Velocity(real FluxDens, real Dens)
+{
   return FluxDens * ((Dens > minN) ? 1. / Dens : 0.);
 }
 
 fespace VhHydr(Th, P0);
 
 VhHydr<real> N0 = Nplus(),
-             N1,      // electron tensity, "0" - current, "1" - at next step
-    Jr0 = 0, Jz0 = 0, // components of
-    Jr1 = 0, Jz1 = 0, // the flux density
+             N1,                 // electron tensity, "0" - current, "1" - at next step
+    Jr0 = 0, Jz0 = 0,            // components of
+    Jr1 = 0, Jz1 = 0,            // the flux density
     PR = N0 ^ (5. / 3.) / 5.,    // preshure
     U0 = N0 ^ (1. / 3.) / sqrt3, // speed of sound
     Er = 0, Ez = 0,              // field components
     maxEigVal = U0,              // maximal eigenvalues for all elements
     Nu = Damp();                 // collision frequency
 
+real relNChange = 1e16, numberOfElectrons = int2d(Th)(N0 * x);
+
 // Main cycle
 real T = 0;      // current time
-real dt = 1e-16; // initial timestep
-while (T < Tend) {
-
+real dt = minDistance.max/U0[].max * CFL; // initial timestep
+while (relNChange > deltaN)
+{
   // Finding electron density and flux (HD part of the problem)
-  for (int t = 0; t < NT; t++) {
+  for (int t = 0; t < NT; t++)
+  {
     real NL = N0[][t], PRL = PR[][t], U0L = U0[][t];
     real Fn = 0, Fr = 0, Fz = 0; // Fluxes of N, Jr and Jz
     maxEigVal[][t] = 0;
-    for (int e = 0; e < 3; e++) {
+    for (int e = 0; e < 3; e++)
+    {
       real JeL = Jr0[][t] * NormalsR(t, e) + Jz0[][t] * NormalsZ(t, e),
            JtL = Jz0[][t] * NormalsR(t, e) - Jr0[][t] * NormalsZ(t, e),
            UeL = Velocity(JeL, NL);
       real NR = 0, JeR = 0, JtR = 0, UeR = 0, PRR = 0, U0R = 0;
 
       int te = Neighbours(t, e);
-      if (te != -1) {
+      if (te != -1)
+      {
         NR = N0[][te];
         JeR = Jr0[][te] * NormalsR(t, e) + Jz0[][te] * NormalsZ(t, e);
         JtR = Jz0[][te] * NormalsR(t, e) - Jr0[][te] * NormalsZ(t, e);
         UeR = Velocity(JeR, NR);
         PRR = PR[][te];
         U0R = U0[][te];
-      } else {
+      }
+      else
+      {
         NR = NL;
         JeR = -JeL;
         JtR = JtL;
@@ -118,19 +134,24 @@ while (T < Tend) {
   }
 
   // Concentration must be nonnegative
-  while (N1[].min < 0) {
+  while (N1[].min < 0)
+  {
     N1[][N1[].imin] = 0;
   }
 
   // Finding field (after updating the electron density):
   Ne = N1;
   Poison;
-  Er = -dx(Ksi) / rfdivasq;
-  Ez = -dy(Ksi) / rfdivasq;
+  Er = -dx(Ksi);
+  Ez = -dy(Ksi);
 
   // Updating fluxses (taking into account the field and dissipation)
-  Jr1 = (Jr1 + dt * Er * N1) / (1. + Nu * dt);
-  Jz1 = (Jz1 + dt * Ez * N1) / (1. + Nu * dt);
+  Jr1 = (Jr1 + dt * Er * N1 / rfdivasq) / (1. + Nu * dt);
+  Jz1 = (Jz1 + dt * Ez * N1 / rfdivasq) / (1. + Nu * dt);
+
+  // Calculate relative change in concentration
+
+  relNChange = int2d(Th)(abs(N1 - N0) * x) / numberOfElectrons;
 
   // Udpate unknowns and time
   N0 = N1;
@@ -144,7 +165,8 @@ while (T < Tend) {
 
   // Finding new time step:
   dt = 1e16;
-  for (int t = 0; t < NT; t++) {
+  for (int t = 0; t < NT; t++)
+  {
     dt = min(
         ((maxEigVal[][t] > 0) ? minDistance(t) / maxEigVal[][t] * CFL : 1e16),
         dt);
@@ -153,13 +175,15 @@ while (T < Tend) {
 
   // Plotting and saving results
   curplot++;
-  if (curplot % plotstep == 0) {
+  if (curplot % plotstep == 0)
+  {
     plot(N0, fill = true, value = true, viso = viso, WindowIndex = 1);
     // plot(Th, Er, fill = true, value = true);
     cout << " T = " << T << endl;
     cout << "Ne = " << 2 * pi * int2d(Th)(N0 * x) << endl;
     cout << "dt = " << dt << endl;
     savevtk(vtkSavePath + "N" + curplot / plotstep + ".vtu", Th, N0,
-            [ Jr0, Jz0, 0 ], T, dataname = DataName, order = Order);
+            [ Jr0, Jz0, 0 ], [ Er, Ez, 0 ], T, dataname = DataName, order = Order);
   }
+
 }
