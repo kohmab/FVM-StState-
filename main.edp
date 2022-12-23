@@ -148,7 +148,7 @@ while (relNChange > deltaN)
   }
 
   // Finding field (after updating the electron density):
-  Ne = N1;
+  Ne = (N1 + N0) / 2;
   Poison;
   Er = -dx(Ksi);
   Ez = -dy(Ksi);
