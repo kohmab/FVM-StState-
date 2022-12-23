@@ -148,14 +148,14 @@ while (relNChange > deltaN)
   }
 
   // Finding field (after updating the electron density):
-  Ne = (N1 + N0) / 2;
+  Ne = N1;
   Poison;
   Er = -dx(Ksi);
   Ez = -dy(Ksi);
 
   // Updating fluxses (taking into account the field and dissipation)
-  Jr1 = (Jr1 * (1. - Nu * dt / 2) + dt * Er * (N1 + N0) / 2 / rfdivasq) / (1. + Nu * dt / 2);
-  Jz1 = (Jz1 * (1. - Nu * dt / 2) + dt * Ez * (N1 + N0) / 2 / rfdivasq) / (1. + Nu * dt / 2);
+  Jr1 = (Jr1 + dt * Er * N1 / rfdivasq) / (1. + Nu * dt);
+  Jz1 = (Jz1 + dt * Ez * N1 / rfdivasq) / (1. + Nu * dt);
 
   // Calculate relative change in concentration
 
