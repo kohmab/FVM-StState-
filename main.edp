@@ -1,6 +1,6 @@
 load "iovtk";
 
-real rfdiva = 1.1; // Ratio between Fermi radius and
+real rfdiva = 0.05; // Ratio between Fermi radius and
                    // characteristic lenght of the object.
 real Epsi = 1;     // Permittivity of the atomic lattice.
 real nuIns = 1.5,  // Collision frequencies inside
@@ -22,17 +22,6 @@ verbosity = 0;
 
 // Auxiliary constants
 real rfdivasq = rfdiva ^ 2, sqrt3 = sqrt(3);
-
-//// Plotting and saving
-int curplot = 0;
-real[int] viso(55);
-for (int i = 0; i < 55; i++)
-  viso[i] = 0.02 * i;
-
-string DataName = "N J E t",
-       vtkSavePath = "./data/rfdiva=" + rfdiva + "_EpsI=" + Epsi + "deltaN=" + deltaN + "nuIns=" + nuIns + "nuOut=" + nuOut + "/";
-int sysCall = system("mkdir " + vtkSavePath);
-int[int] Order = [ 1, 1, 1, 1 ];
 
 //// Poison equation
 func real Eps()
@@ -77,9 +66,28 @@ VhHydr<real> N0 = Nplus(),
 
 real relNChange = 1e16, numberOfElectrons = int2d(Th)(N0 * x);
 
+//// Plotting and saving
+int curplot = 0;
+real[int] viso(55);
+for (int i = 0; i < 55; i++)
+  viso[i] = 0.02 * i;
+
+string DataName = "N J E t",
+       vtkSavePath = "./data/rfdiva=" + rfdiva + "_EpsI=" + Epsi + "deltaN=" + deltaN + "nuIns=" + nuIns + "nuOut=" + nuOut + "/";
+int sysCall = system("mkdir " + vtkSavePath);
+int[int] Order = [ 1, 1, 1, 1 ];
+
+func int PlotAndSave(int fileIndex, real T)
+{
+  plot(N0, fill = true, value = true, viso = viso, WindowIndex = 1);
+  savevtk(vtkSavePath + "N" + fileIndex + ".vtu", Th, N0,
+          [ Jr0, Jz0, 0 ], [ Er, Ez, 0 ], T, dataname = DataName, order = Order);
+  return 0;
+}
+
 // Main cycle
-real T = 0;      // current time
-real dt = minDistance.max/U0[].max * CFL; // initial timestep
+real T = 0;                                 // current time
+real dt = minDistance.max / U0[].max * CFL; // initial timestep
 while (relNChange > deltaN)
 {
   // Finding electron density and flux (HD part of the problem)
@@ -177,13 +185,8 @@ while (relNChange > deltaN)
   curplot++;
   if (curplot % plotstep == 0)
   {
-    plot(N0, fill = true, value = true, viso = viso, WindowIndex = 1);
-    // plot(Th, Er, fill = true, value = true);
-    cout << " T = " << T << endl;
-    cout << "Ne = " << 2 * pi * int2d(Th)(N0 * x) << endl;
-    cout << "dt = " << dt << endl;
-    savevtk(vtkSavePath + "N" + curplot / plotstep + ".vtu", Th, N0,
-            [ Jr0, Jz0, 0 ], [ Er, Ez, 0 ], T, dataname = DataName, order = Order);
+    PlotAndSave(curplot / plotstep, T);
+    cout << "deltaN = " << relNChange << "\t T = " << T << "\t dt = " << dt << endl;
   }
-
 }
+PlotAndSave(curplot / plotstep + 1, T);
