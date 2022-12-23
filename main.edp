@@ -1,13 +1,14 @@
 load "iovtk";
 
-real rfdiva =
-    0.01; // ratio between Fermi radius and characteristic lenght of the object
-real Epsi = 1; // Permittivity of the atomic lattice
-real nu = 0.5;
+real rfdiva = 0.1; // Ratio between Fermi radius and
+                    // characteristic lenght of the object.
+real Epsi = 1;      // Permittivity of the atomic lattice.
+real nuIns = 1.5,   // Collision frequencies inside
+    nuOut = 0.00;   // and outside the object.
 
 real minN = 1e-10; // Minimal density for calculating velocity in the cell
 real dtmin = 1e-1, Tend = 27; // Minimal time step and final time
-real CFL = 0.9;               // dt = CFL * (dx / U0)
+real CFL = 0.45;               // dt = CFL * (dx / max Lambda)
 
 int plotstep = 10; // Number of iterations between plotting
 
@@ -30,18 +31,25 @@ for (int i = 0; i < 55; i++)
   viso[i] = 0.02 * i;
 
 //// Poison equation
+func real Eps() {
+  return (Th(x, y).region == Th(0, 0).region) ? Epsi : 1.0;
+} // Perrmittivity
+func real Nplus() {
+  return (Th(x, y).region == Th(0, 0).region) ? 1.0 : 0.0;
+} // Positive charge
+
 fespace VhPois(Th, P1);
-
-func real Eps() { return (Th(x, y).region == Th(0, 0).region) ? Epsi : 1.0; }
-func real Nplus() { return (Th(x, y).region == Th(0, 0).region) ? 1.0 : 0.0; }
-
 VhPois<real> Ne, Ni = Nplus, Ksi, v;
 
 problem Poison(Ksi,
                v) = int2d(Th)(Eps() * (dx(Ksi) * dx(v) + dy(Ksi) * dy(v)) * x) +
                     int2d(Th)((Nplus() - Ne) * v * x) + on(1, Ksi = 0);
 
-//// Hydrodynamics
+// Hydrodynamics
+func real Damp() {
+  return (Th(x, y).region == Th(0, 0).region) ? nuIns : nuOut;
+} // Collision frequency
+
 func real Velocity(real FluxDens, real Dens) {
   return FluxDens * ((Dens > minN) ? 1. / Dens : 0.);
 }
@@ -55,7 +63,8 @@ VhHydr<real> N0 = Nplus(),
     PR = N0 ^ (5. / 3.) / 5.,    // preshure
     U0 = N0 ^ (1. / 3.) / sqrt3, // speed of sound
     Er = 0, Ez = 0,              // field components
-    maxEigVal = U0;              // maximal eigenvalues for all elements
+    maxEigVal = U0,              // maximal eigenvalues for all elements
+    Nu = Damp();                 // collision frequency
 
 // Main cycle
 real T = 0;      // current time
@@ -120,8 +129,8 @@ while (T < Tend) {
   Ez = -dy(Ksi) / rfdivasq;
 
   // Updating fluxses (taking into account the field and dissipation)
-  Jr1 = (Jr1 + dt * Er * N1) / (1 + nu * dt);
-  Jz1 = (Jz1 + dt * Ez * N1) / (1 + nu * dt);
+  Jr1 = (Jr1 + dt * Er * N1) / (1. + Nu * dt);
+  Jz1 = (Jz1 + dt * Ez * N1) / (1. + Nu * dt);
 
   // Udpate unknowns and time
   N0 = N1;
