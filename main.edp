@@ -10,7 +10,7 @@ real deltaN = 1e-6; // Relative concentration error
 
 real minN = 1e-10; // Minimal density for calculating velocity in the cell
 real dtmin = 1e-1; // Minimal time step and final time
-real CFL = 0.45;   // dt = CFL * (dx / max Lambda)
+real CFL = 0.4;   // dt = CFL * (dx / max Lambda)
 
 int plotstep = 10; // Number of iterations between plotting
 
@@ -154,8 +154,8 @@ while (relNChange > deltaN)
   Ez = -dy(Ksi);
 
   // Updating fluxses (taking into account the field and dissipation)
-  Jr1 = (Jr1 + dt * Er * N1 / rfdivasq) / (1. + Nu * dt);
-  Jz1 = (Jz1 + dt * Ez * N1 / rfdivasq) / (1. + Nu * dt);
+  Jr1 = (Jr1 * (1. - Nu * dt / 2) + dt * Er * (N1 + N0) / 2 / rfdivasq) / (1. + Nu * dt / 2);
+  Jz1 = (Jz1 * (1. - Nu * dt / 2) + dt * Ez * (N1 + N0) / 2 / rfdivasq) / (1. + Nu * dt / 2);
 
   // Calculate relative change in concentration
 
