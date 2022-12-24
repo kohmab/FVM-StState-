@@ -86,7 +86,7 @@ func int PlotAndSave(int fileIndex, real T)
 
 // Main cycle
 real T = 0;                                 // current time
-real dt = minDistance.max / U0[].max * CFL; // initial timestep
+real dt = minDistance.min / U0[].max * CFL; // initial timestep
 while (relNChange > deltaN)
 {
   // Finding electron density and flux (HD part of the problem)
