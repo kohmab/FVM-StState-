@@ -1,9 +1,10 @@
-real hmin = rfdiva/3;
-real hmax = 0.5;
+real hmin = rfdiva/5;
+real hmax = rfdiva;
 real bw = rfdiva;
-real R  = 2.;
 real ap = 1;
 real am = -1;
+real R  = ap + 8 * rfdiva;
+
 
 border Axm(t = am,-R) {x = 0; y = t; label = 0;}
 border Axi(t = ap,am) {x = 0; y = t; label = 0;}
@@ -25,6 +26,7 @@ func real f() {
 
 mesh Th = buildmesh( Obj(Nobj) + Axi(Naxi) + Axm(Naxm) + Out(Nout) + Axp(Naxp) );
 plot(Th,wait = true);
+
 
 Th =  adaptmesh(Th, f(), hmin = hmin, hmax = hmax , nbvx = 3500, thetamax = 30);
 
