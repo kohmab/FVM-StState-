@@ -1,10 +1,10 @@
 load "iovtk";
 
-real rfdiva = 0.03; // Ratio between Fermi radius and
+real rfdiva = 0.5; // Ratio between Fermi radius and
                    // characteristic lenght of the object.
 real Epsi = 1;     // Permittivity of the atomic lattice.
 real nuIns = 0.5,  // Collision frequencies inside
-    nuOut = 0.01;   // and outside the object.
+    nuOut = 0.00;   // and outside the object.
 
 real deltaN = 1e-6; // Relative concentration error
 
@@ -186,3 +186,4 @@ while (relNChange > deltaN)
   }
 }
 PlotAndSave(curplot / plotstep + 1, T);
+cout << "Done!" << endl;

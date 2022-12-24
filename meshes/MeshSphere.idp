@@ -4,7 +4,7 @@ real hmax = 1;
 real bw = rfdiva;
 real ap = 1;
 real am = -1;
-real R  = 10;//ap + 8 * rfdiva;
+real R  = 3;//ap + 8 * rfdiva;
 
 border Axm(t = am,-R) {x = 0; y = t; label = 0;}
 border Axi(t = ap,am) {x = 0; y = t; label = 0;}
