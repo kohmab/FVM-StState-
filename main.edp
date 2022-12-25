@@ -4,13 +4,13 @@ real rfdiva = 0.5; // Ratio between Fermi radius and
                    // characteristic lenght of the object.
 real Epsi = 1;     // Permittivity of the atomic lattice.
 real nuIns = 0.5,  // Collision frequencies inside
-    nuOut = 0.00;   // and outside the object.
+    nuOut = 0.00;  // and outside the object.
 
 real deltaN = 1e-6; // Relative concentration error
 
 real minN = 1e-10; // Minimal density for calculating velocity in the cell
 real dtmin = 1e-1; // Minimal time step and final time
-real CFL = 0.5;   // dt = CFL * (dx / max Lambda)
+real CFL = 0.5;    // dt = CFL * (dx / max Lambda)
 
 int plotstep = 10; // Number of iterations between plotting
 
@@ -60,7 +60,7 @@ VhHydr<real> N0 = Nplus(),
     Jr1 = 0, Jz1 = 0,            // the flux density
     PR = N0 ^ (5. / 3.) / 5.,    // preshure
     U0 = N0 ^ (1. / 3.) / sqrt3, // speed of sound
-    Er = 0, Ez = 0,              // field components    
+    Er = 0, Ez = 0,              // field components
     Nu = Damp();                 // collision frequency
 
 real relNChange = 1e16, numberOfElectrons = int2d(Th)(N0 * x);
@@ -87,13 +87,15 @@ func int PlotAndSave(int fileIndex, real T)
 // Main cycle
 real T = 0;                                 // current time
 real dt = minDistance.min / U0[].max * CFL; // initial timestep
+real tic, ticHD, ticED, ticUPD, ticPLT;     // variables for storing computational times
 while (relNChange > deltaN)
 {
+  tic = clock();
   // Finding electron density and flux (HD part of the problem)
   for (int t = 0; t < NT; t++)
   {
     real NL = N0[][t], PRL = PR[][t], U0L = U0[][t];
-    real Fn = 0, Fr = 0, Fz = 0; // Fluxes of N, Jr and Jz    
+    real Fn = 0, Fr = 0, Fz = 0; // Fluxes of N, Jr and Jz
     for (int e = 0; e < 3; e++)
     {
       real JeL = Jr0[][t] * NormalsR(t, e) + Jz0[][t] * NormalsZ(t, e),
@@ -122,7 +124,7 @@ while (relNChange > deltaN)
       }
       real EigValL = U0L + abs(UeL), // Left and right maximal eigenvalues
           EigValR = U0R + abs(UeR),
-          maxlam = max(EigValL, EigValR); // Maximal of two eigenvalues
+           maxlam = max(EigValL, EigValR); // Maximal of two eigenvalues
 
       Fn += FluxN * Surfaces(t, e);
       Fr +=
@@ -141,11 +143,15 @@ while (relNChange > deltaN)
     N1[][N1[].imin] = 0;
   }
 
+  ticHD = clock();
+
   // Finding field (after updating the electron density):
   Ne = N1;
   Poison;
   Er = -dx(Ksi);
   Ez = -dy(Ksi);
+
+  ticED = clock();
 
   // Updating fluxses (taking into account the field and dissipation)
   Jr1 = (Jr1 + dt * Er * N1 / rfdivasq) / (1. + Nu * dt);
@@ -170,19 +176,29 @@ while (relNChange > deltaN)
   for (int t = 0; t < NT; t++)
   {
     dt = min(
-        ((U0[][t] > 0) 
-        ? minDistance(t) / (U0[][t] + Velocity(sqrt(Jr0[][t]^2 + Jz0[][t]^2), N0[][t])) * CFL 
-        : 1e16),
+        ((U0[][t] > 0)
+             ? minDistance(t) / (U0[][t] + Velocity(sqrt(Jr0[][t] ^ 2 + Jz0[][t] ^ 2), N0[][t])) * CFL
+             : 1e16),
         dt);
   }
   dt = min(dt, dtmin);
+
+  ticUPD = clock();
 
   // Plotting and saving results
   curplot++;
   if (curplot % plotstep == 0)
   {
     PlotAndSave(curplot / plotstep, T);
-    cout << "deltaN = " << relNChange << "\t T = " << T << "\t dt = " << dt << endl;
+    ticPLT = clock();
+    cout << "Time spend:" << endl;
+    cout << "HD : " << ticHD - tic
+         << "s,\t ED : " << ticED - ticHD
+         << "s,\t UPD : " << ticUPD - ticED
+         << "s,\t PLT : " << ticPLT - ticUPD << "s." << endl;
+    cout << "-------------------------------------------------------------------------------" << endl;
+    cout << "deltaN = " << relNChange << ",\t T = " << T << ",\t dt = " << dt << "." << endl;
+    cout << endl;
   }
 }
 PlotAndSave(curplot / plotstep + 1, T);
