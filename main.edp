@@ -74,7 +74,7 @@ for (int i = 0; i < 55; i++)
 string DataName = "N J E t",
        vtkSavePath = "./data/rfdiva=" + rfdiva + "_EpsI=" + Epsi + "deltaN=" + deltaN + "nuIns=" + nuIns + "nuOut=" + nuOut + "/";
 int sysCall = system("mkdir " + vtkSavePath);
-int[int] Order = [ 1, 1, 1, 1 ];
+int[int] Order = [ 0, 0, 1, 0 ];
 
 func int PlotAndSave(int fileIndex, real T)
 {
