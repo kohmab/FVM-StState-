@@ -1,5 +1,5 @@
 macro FluxN() ((JeR + JeL) / 2 - maxlam * (NR - NL) / 2) // EOM
-macro FluxJe() ((JeR*UeR + PRR + JeL*UeL + PRL) / 2 - maxlam * (JeR - JeL ) / 2) // EOM
-macro FluxJt() ((JtR*UeR + JtL*UeL) / 2 - maxlam * (JtR - JtL) / 2) // EOM
+macro FluxJr() ((JrR*UeR + PRrR + JrL*UeL + PRrL) / 2 - maxlam * (JrR - JrL) / 2) // EOM
+macro FluxJz() ((JzR*UeR + PRzR + JzL*UeL + PRzL) / 2 - maxlam * (JzR - JzL) / 2) // EOM
 
 

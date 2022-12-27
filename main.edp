@@ -1,6 +1,6 @@
 load "iovtk";
 
-real rfdiva = 0.5; // Ratio between Fermi radius and
+real rfdiva = 0.005; // Ratio between Fermi radius and
                    // characteristic lenght of the object.
 real Epsi = 1;     // Permittivity of the atomic lattice.
 real nuIns = 0.5,  // Collision frequencies inside
@@ -94,32 +94,38 @@ while (relNChange > deltaN)
   // Finding electron density and flux (HD part of the problem)
   for (int t = 0; t < NT; t++)
   {
-    real NL = N0[][t], PRL = PR[][t], U0L = U0[][t];
+    real NL = N0[][t], JrL = Jr0[][t], JzL = Jz0[][t], PRL = PR[][t], U0L = U0[][t];
     real Fn = 0, Fr = 0, Fz = 0; // Fluxes of N, Jr and Jz
     for (int e = 0; e < 3; e++)
     {
-      real JeL = Jr0[][t] * NormalsR(t, e) + Jz0[][t] * NormalsZ(t, e),
-           JtL = Jz0[][t] * NormalsR(t, e) - Jr0[][t] * NormalsZ(t, e),
-           UeL = Velocity(JeL, NL);
-      real NR = 0, JeR = 0, JtR = 0, UeR = 0, PRR = 0, U0R = 0;
+      real JeL = JrL * NormalsR(t, e) + JzL * NormalsZ(t, e),
+           UeL = Velocity(JeL, NL), 
+           PRrL = PRL * NormalsR(t, e), 
+           PRzL = PRL * NormalsZ(t, e);
+      real NR = 0, JeR = 0, UeR = 0, JrR = 0, JzR = 0, PRR = 0, PRrR = 0, PRzR = 0, U0R = 0;
 
       int te = Neighbours(t, e);
       if (te != -1)
       {
         NR = N0[][te];
+        JrR = Jr0[][te];
+        JzR = Jz0[][te];
         JeR = Jr0[][te] * NormalsR(t, e) + Jz0[][te] * NormalsZ(t, e);
-        JtR = Jz0[][te] * NormalsR(t, e) - Jr0[][te] * NormalsZ(t, e);
         UeR = Velocity(JeR, NR);
         PRR = PR[][te];
+        PRrR = PRR * NormalsR(t, e);
+        PRzR = PRR * NormalsZ(t, e);
         U0R = U0[][te];
       }
       else
       {
         NR = NL;
         JeR = -JeL;
-        JtR = JtL;
+        JrR = JrL - 2 * NormalsR(t, e) * JeL;
+        JrR = JzL - 2 * NormalsZ(t, e) * JeL;
         UeR = -UeL;
-        PRR = PRL;
+        PRrR = PRrL;
+        PRzR = PRzL;
         U0R = U0L;
       }
       real EigValL = U0L + abs(UeL), // Left and right maximal eigenvalues
@@ -127,10 +133,8 @@ while (relNChange > deltaN)
            maxlam = max(EigValL, EigValR); // Maximal of two eigenvalues
 
       Fn += FluxN * Surfaces(t, e);
-      Fr +=
-          (FluxJe * NormalsR(t, e) - FluxJt * NormalsZ(t, e)) * Surfaces(t, e);
-      Fz +=
-          (FluxJe * NormalsZ(t, e) + FluxJt * NormalsR(t, e)) * Surfaces(t, e);
+      Fr += FluxJr * Surfaces(t, e);
+      Fz += FluxJz * Surfaces(t, e);
     }
     N1[][t] = N0[][t] - dt * Fn;
     Jr1[][t] = Jr0[][t] + dt * (-Fr + PRL * Areas[t]);
