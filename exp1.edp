@@ -1,0 +1,17 @@
+//include "ffddm.idp"
+
+macro dimension 2// EOM 
+
+mesh Th = square(4,4);
+
+plot(Th);
+
+include "ffddm.idp"
+
+ffddmbuildDmesh(pr,Th,mpiCommWorld)
+
+savemesh(prThi,mpirank + "mesh.msh");
+
+
+
+
